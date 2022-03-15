@@ -1,6 +1,7 @@
 #include "UserPasswordManager.h"
 #include <string>
 #include <cctype>
+#include <sstream>
 
 // Private
 void UserPasswordManager::createPassword()
@@ -47,6 +48,13 @@ bool UserPasswordManager::validatePassword(std::string password)
                  password[i] == ']' || password[i] == '{' || password[i] == '}')
             specialChars = true;
         else
+            return false;
+    }
+
+    // check if password used
+    for (std::string aPassword : this->oldPasswords)
+    {
+        if (password.compare(aPassword) == 0)
             return false;
     }
 
@@ -101,6 +109,40 @@ std::string UserPasswordManager::encryptPassword(std::string password)
     return encryptedPass;
 }
 
+std::string UserPasswordManager::decryptPassword()
+{
+    std::string decryptedPass;
+    std::string encryptPassword = this->currentPassword;
+    std::string password = encryptPassword.substr(5);
+    int upperSubToken, lowerSubToken, digitSubToken;
+
+    // Use stringstream to convert the tokens in encrypted password to ints
+    std::stringstream ss1, ss2, ss3;
+
+    ss1 << encryptPassword.substr(0, 2);
+    ss1 >> upperSubToken;
+
+    ss2 << encryptPassword.substr(2, 2);
+    ss2 >> lowerSubToken;
+
+    ss3 << encryptPassword.substr(4, 1);
+    ss3 >> digitSubToken;
+
+    for (int i = 0; i < password.size(); ++i)
+    {
+        if (isupper(password[i]))
+            decryptedPass += this->upperAlph[((password[i] - 'A') + (26 - upperSubToken)) % 26];
+        else if (islower(password[i]))
+            decryptedPass += this->lowerAlph[((password[i] - 'a') + (26 - lowerSubToken)) % 26];
+        else if (isdigit(password[i]))
+            decryptedPass += this->digitStr[((password[i] - '0')  + (10 - digitSubToken)) % 10];
+        else
+            decryptedPass += password[i];
+    }
+
+    return decryptedPass;
+}
+
 
 // Public
 UserPasswordManager::UserPasswordManager()
@@ -133,4 +175,14 @@ void UserPasswordManager::changePassword()
     }
     else
         std::cout << "\nPassword was not changed";
+}
+
+bool UserPasswordManager::verifyPassword(std::string passToVerify)
+{
+    std::string decryptedPass = this->decryptPassword();
+
+    if (passToVerify.compare(decryptedPass) == 0)
+        return true;
+
+    return false;
 }
